@@ -4,19 +4,26 @@ from .qo_splitter import FeatureQuantizer, QOSplitter, Slot
 
 
 class AdaptiveQOSplitter(QOSplitter):
-    def __init__(self, kernel: str, radius: float = 0.25, allow_multiway_splits=False):
+    def __init__(
+            self,
+            kernel: str,
+            radius: float = 0.5,
+            allow_multiway_splits=True,
+            gamma: float = 1.0,
+    ):
         super().__init__()
         if radius <= 0:
             raise ValueError("'radius' must be greater than zero.")
         self.radius = radius
         self.kernel = kernel
+        self.gamma = gamma
 
         if kernel == "triangular":
             self._quantizer = TriangularFeatureQuantizer(radius)
         elif kernel == "epanechnikov":
             self._quantizer = EpanechnikovFeatureQuantizer(radius)
         elif kernel == "smooth":
-            self._quantizer = SmoothStepFeatureQuantizer(radius)
+            self._quantizer = SmoothStepFeatureQuantizer(radius, gamma=gamma)
 
         self.allow_multiway_splits = allow_multiway_splits
 
@@ -63,9 +70,9 @@ class TriangularFeatureQuantizer(FeatureQuantizer):
         # Retorna pares (índice, peso)
         # Filtramos pesos muito pequenos para economizar memória (esparsidade)
         assignments = []
-        if weight_center > 1e-4:
+        if weight_center > 1e-1:
             assignments.append((center_idx, weight_center))
-        if weight_neighbor > 1e-4:
+        if weight_neighbor > 1e-1:
             assignments.append((neighbor_idx, weight_neighbor))
 
         return assignments
@@ -98,8 +105,6 @@ class EpanechnikovFeatureQuantizer(FeatureQuantizer):
 
     def __init__(self, radius: float, bandwidth_scale: float = 1.0):
         super().__init__(radius)
-        # Bandwidth define a largura da parábola.
-        # Geralmente igual ao raio ou um pouco maior para sobreposição suave.
         self.bandwidth = radius * bandwidth_scale
 
     def _epanechnikov_kernel(self, u):
@@ -119,28 +124,28 @@ class EpanechnikovFeatureQuantizer(FeatureQuantizer):
         weights = []
         total_weight = 0.0
 
-        # Verifica apenas vizinhos imediatos (devido ao suporte compacto)
-        # Se bandwidth_scale > 1.0, talvez precise verificar centro +/- 2
-        search_range = 1 if self.bandwidth <= self.radius else 2
-        neighbors = range(center_idx - search_range, center_idx + search_range + 1)
+        neighbors = range(center_idx - 1, center_idx + 2)
 
         for idx in neighbors:
             centroid = idx * self.radius
             distance = x - centroid
 
-            # u normalizado pela largura de banda
             u = distance / self.bandwidth
 
             w = self._epanechnikov_kernel(u)
 
-            if w > 1e-6:
+            if w > 1e-1:
                 weights.append(w)
                 assignments.append(idx)
                 total_weight += w
 
-        # Normalização obrigatória para manter a soma estatística correta
         final_assignments = []
         if total_weight > 0:
+            max_w = max(weights)
+            if max_w / total_weight > 0.9:
+                max_idx = assignments[weights.index(max_w)]
+                return [(max_idx, 1.0)]
+
             for i, w in enumerate(weights):
                 normalized = w / total_weight
                 final_assignments.append((assignments[i], normalized))
@@ -154,7 +159,6 @@ class EpanechnikovFeatureQuantizer(FeatureQuantizer):
             try:
                 self.hash[index].update(x, y, effective_weight)
             except KeyError:
-                # Assume-se a existência da classe Slot original do QO
                 self.hash[index] = Slot(x, y, effective_weight)
 
 
@@ -241,7 +245,7 @@ class SmoothStepFeatureQuantizer(FeatureQuantizer):
     def update(self, x: float, y, weight: float):
         assignments = self._get_assignments(x)
         for index, soft_weight in assignments:
-            if soft_weight <= 1e-6:
+            if soft_weight <= 1e-1:
                 continue  # Otimização de esparsidade
 
             effective_weight = weight * soft_weight
