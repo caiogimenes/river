@@ -16,6 +16,7 @@ when choosing the correct feature splitter.
 
 from __future__ import annotations
 
+from .adaptive_qo import AdaptiveQOSplitter
 from .base import Quantizer, Splitter
 from .ebst_splitter import EBSTSplitter
 from .exhaustive_splitter import ExhaustiveSplitter
@@ -24,7 +25,6 @@ from .histogram_splitter import HistogramSplitter
 from .qo_splitter import QOSplitter
 from .sgt_quantizer import DynamicQuantizer, StaticQuantizer
 from .tebst_splitter import TEBSTSplitter
-from .adaptive_qo import AdaptiveQOSplitter
 
 __all__ = [
     "DynamicQuantizer",
@@ -37,5 +37,5 @@ __all__ = [
     "Splitter",
     "StaticQuantizer",
     "TEBSTSplitter",
-    "AdaptiveQOSplitter"
+    "AdaptiveQOSplitter",
 ]

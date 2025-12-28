@@ -5,11 +5,11 @@ from .qo_splitter import FeatureQuantizer, QOSplitter, Slot
 
 class AdaptiveQOSplitter(QOSplitter):
     def __init__(
-            self,
-            kernel: str,
-            radius: float = 0.5,
-            allow_multiway_splits=True,
-            gamma: float = 1.0,
+        self,
+        kernel: str,
+        radius: float = 0.5,
+        allow_multiway_splits=True,
+        gamma: float = 1.0,
     ):
         super().__init__()
         if radius <= 0:
