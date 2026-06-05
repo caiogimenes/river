@@ -18,8 +18,6 @@ __pycache__/
 
 # C(++) extensions
 *.so
-*.c
-*.cpp
 
 # Rust compilation folder
 /target
@@ -70,9 +68,6 @@ coverage.xml
 # IPython
 profile_default/
 ipython_config.py
-
-# pyenv
-.python-version
 
 # Environments
 .env
@@ -125,9 +120,6 @@ package.json
 
 # ASV
 benchmarks/.asv
-
-# Cargo file
-Cargo.lock
 
 # WASM
 /*.html
